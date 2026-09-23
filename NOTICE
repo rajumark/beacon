@@ -1,0 +1,24 @@
+Beacon
+Copyright 2026 The Beacon authors
+
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+The bundled model (beacon/src/main/assets/beacon) was trained on or derived from:
+
+  - OpenLID-v3 (HPLT)
+  - Tatoeba sentences ..................... CC-BY 2.0 FR  (https://tatoeba.org)
+  - WiLI-2018
+  - AI4Bharat IndicCorp v2 (slices)
+  - Dakshina (Google Research)
+  - Aksharantar (AI4Bharat)
+  - Hinglish everyday conversations
+  - Tanglish / Dravidian code-mixed comments
+  - Roman Urdu
+  - SentiMix
+  - TweetEval
+
+FLORES-200 was used only for evaluation.
+
+Each dataset has its own license and terms; check them before commercial use.
+TODO before calling the model Apache-2.0 without qualification: confirm the license of every
+source above and record it here.

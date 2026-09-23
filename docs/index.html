@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Beacon — on-device language detection for Android</title>
+<meta name="description" content="Beacon detects the language and script of any text, including Hinglish and Tanglish, in under a tenth of a millisecond, on-device. 211 labels, ~8.5 MB, no dependencies. Free, Apache-2.0 code.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22><rect x=%221%22 y=%221%22 width=%2222%22 height=%2222%22 rx=%227%22 fill=%22%23d9480f%22/><path d=%22M10 18h4l-.8-8h-2.4Z%22 fill=%22%23fff%22/><path d=%22M9.2 10h5.6%22 stroke=%22%23fff%22 stroke-width=%221.6%22 stroke-linecap=%22round%22/></svg>">
+<style>
+  :root {
+    --bg: #ffffff;
+    --bg-subtle: #f5f5f7;
+    --text: #1d1d1f;
+    --text-secondary: #6e6e73;
+    --border: #d2d2d7;
+    --accent: #c2410c;
+    --accent-hover: #d9480f;
+    --code-bg: #f5f5f7;
+    --code-text: #1d1d1f;
+    --card-bg: #ffffff;
+    --nav-bg: rgba(255, 255, 255, 0.8);
+    --pill-bg: #f5f5f7;
+    --syn-comment: #6e7781;
+    --syn-keyword: #cf222e;
+    --syn-string: #0a3069;
+    --syn-number: #0550ae;
+    --syn-function: #8250df;
+    --syn-type: #953800;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #000000;
+      --bg-subtle: #1d1d1f;
+      --text: #f5f5f7;
+      --text-secondary: #a1a1a6;
+      --border: #424245;
+      --accent: #f76707;
+      --accent-hover: #fd7e14;
+      --code-bg: #1d1d1f;
+      --code-text: #f5f5f7;
+      --card-bg: #1d1d1f;
+      --nav-bg: rgba(0, 0, 0, 0.8);
+      --pill-bg: #2c2c2e;
+      --syn-comment: #8b949e;
+      --syn-keyword: #ff7b72;
+      --syn-string: #a5d6ff;
+      --syn-number: #79c0ff;
+      --syn-function: #d2a8ff;
+      --syn-type: #ffa657;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #000000;
+    --bg-subtle: #1d1d1f;
+    --text: #f5f5f7;
+    --text-secondary: #a1a1a6;
+    --border: #424245;
+    --accent: #f76707;
+    --accent-hover: #fd7e14;
+    --code-bg: #1d1d1f;
+    --code-text: #f5f5f7;
+    --card-bg: #1d1d1f;
+    --nav-bg: rgba(0, 0, 0, 0.8);
+    --pill-bg: #2c2c2e;
+    --syn-comment: #8b949e;
+    --syn-keyword: #ff7b72;
+    --syn-string: #a5d6ff;
+    --syn-number: #79c0ff;
+    --syn-function: #d2a8ff;
+    --syn-type: #ffa657;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.5;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { color: var(--accent-hover); }
+
+  /* Nav */
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    background: var(--nav-bg);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-inner {
+    max-width: 980px; margin: 0 auto;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 22px; height: 48px;
+    font-size: 14px;
+  }
+  .nav-brand { display: flex; align-items: center; gap: 8px; font-weight: 600; color: var(--text); }
+  .nav-links { display: flex; gap: 28px; }
+  .nav-links a { color: var(--text); font-size: 12px; opacity: 0.85; }
+  .nav-links a:hover { opacity: 1; }
+  .nav-cta {
+    font-size: 12px; padding: 6px 14px; border-radius: 980px;
+    background: var(--accent); color: #fff !important; opacity: 1 !important;
+  }
+  .nav-cta:hover { background: var(--accent-hover); }
+
+  /* Hero */
+  .hero {
+    max-width: 980px; margin: 0 auto;
+    padding: 90px 22px 60px;
+    text-align: center;
+  }
+  .hero .eyebrow {
+    font-size: 17px; font-weight: 600; color: var(--accent); margin-bottom: 8px;
+  }
+  .hero h1 {
+    font-size: clamp(40px, 7vw, 64px);
+    font-weight: 700; letter-spacing: -0.015em;
+    margin: 0 0 12px; line-height: 1.05;
+  }
+  .hero p.tagline {
+    font-size: clamp(19px, 3vw, 24px);
+    color: var(--text-secondary);
+    max-width: 640px; margin: 0 auto 32px;
+    font-weight: 400;
+  }
+  .hero-actions { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-bottom: 16px; }
+  .hero-trust { font-size: 13px; color: var(--text-secondary); text-align: center; margin: 0 0 48px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 11px 22px; border-radius: 980px; font-size: 15px; font-weight: 400;
+    border: 1px solid transparent; cursor: pointer;
+  }
+  .btn-primary { background: var(--accent); color: #fff !important; }
+  .btn-primary:hover { background: var(--accent-hover); }
+  .btn-secondary { background: transparent; color: var(--accent) !important; border-color: var(--accent); }
+  .btn-secondary:hover { background: var(--accent); color: #fff !important; }
+
+  .hero-demo {
+    background: var(--bg-subtle);
+    border-radius: 18px;
+    padding: 28px;
+    text-align: left;
+    max-width: 640px; margin: 0 auto;
+    border: 1px solid var(--border);
+    transition: opacity 0.35s ease;
+  }
+  .hero-demo.is-fading { opacity: 0; }
+  .hero-demo .prompt { color: var(--text-secondary); font-size: 13px; margin-bottom: 10px; }
+  .hero-demo .input-row {
+    background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px;
+    padding: 10px 14px; font-size: 15px; margin-bottom: 14px;
+  }
+  .emoji-row { display: flex; gap: 10px; flex-wrap: wrap; font-size: 28px; }
+  .emoji-row span { transition: transform 0.15s; }
+
+  /* Sections */
+  section { max-width: 980px; margin: 0 auto; padding: 70px 22px; border-top: 1px solid var(--border); }
+  section:first-of-type { border-top: none; }
+  .section-head { text-align: center; margin-bottom: 44px; }
+  .section-head .kicker {
+    font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--accent); margin-bottom: 10px;
+  }
+  .section-head h2 { font-size: clamp(30px, 4vw, 40px); font-weight: 700; letter-spacing: -0.01em; margin: 0 0 10px; }
+  .section-head p { color: var(--text-secondary); font-size: 18px; max-width: 620px; margin: 0 auto; }
+
+  /* Feature grid */
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; }
+  .card {
+    background: var(--bg-subtle); border-radius: 18px; padding: 28px;
+    border: 1px solid var(--border);
+  }
+  .card .icon { width: 30px; height: 30px; margin-bottom: 14px; color: var(--accent); display: block; }
+  .card .icon svg { display: block; width: 100%; height: 100%; }
+  .card h3 { font-size: 19px; font-weight: 600; margin: 0 0 8px; }
+  .card p { font-size: 14px; color: var(--text-secondary); margin: 0; line-height: 1.5; }
+
+  /* Code blocks */
+  pre {
+    background: var(--code-bg); color: var(--code-text);
+    border-radius: 14px; padding: 20px 22px; overflow-x: auto;
+    font-size: 13.5px; line-height: 1.6; border: 1px solid var(--border);
+    margin: 0;
+  }
+  code { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; }
+  .hljs-comment, .hljs-quote { color: var(--syn-comment); font-style: italic; }
+  .hljs-keyword, .hljs-selector-tag, .hljs-literal, .hljs-meta .hljs-keyword { color: var(--syn-keyword); }
+  .hljs-string, .hljs-doctag, .hljs-regexp { color: var(--syn-string); }
+  .hljs-number { color: var(--syn-number); }
+  .hljs-title, .hljs-title.function_, .hljs-title.class_ { color: var(--syn-function); }
+  .hljs-built_in, .hljs-type, .hljs-class { color: var(--syn-type); }
+  .hljs-variable, .hljs-attr, .hljs-params, .hljs-property { color: var(--code-text); }
+  .hljs-meta { color: var(--syn-comment); }
+  .code-label {
+    font-size: 12px; font-weight: 600; color: var(--text-secondary);
+    text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;
+  }
+  .code-block { margin-bottom: 22px; }
+  .tag-pill {
+    display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 10px;
+    border-radius: 980px; background: var(--pill-bg); color: var(--text-secondary);
+    margin-left: 8px; vertical-align: 2px;
+  }
+  .tag-pill.live { background: #d1f7dd; color: #0a6b2c; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  @media (max-width: 720px) { .two-col { grid-template-columns: 1fr; } }
+
+  /* Use cases */
+  .usecase-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; }
+  .usecase {
+    display: flex; gap: 16px; padding: 22px;
+    background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px;
+  }
+  .usecase .icon { width: 26px; height: 26px; flex: none; color: var(--accent); }
+  .usecase .icon svg { display: block; width: 100%; height: 100%; }
+  .usecase h4 { margin: 0 0 6px; font-size: 16px; font-weight: 600; }
+  .usecase p { margin: 0; font-size: 13.5px; color: var(--text-secondary); line-height: 1.5; }
+
+  /* API table */
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--border); }
+  th { color: var(--text-secondary); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+  td code { background: var(--code-bg); padding: 2px 6px; border-radius: 5px; font-size: 12.5px; }
+
+  /* Stat cards */
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; }
+  .stat-card {
+    background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px;
+    padding: 24px 20px; text-align: center;
+  }
+  .stat-card .stat-value { font-size: clamp(28px, 4vw, 36px); font-weight: 700; letter-spacing: -0.01em; color: var(--accent); }
+  .stat-card .stat-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text); margin-top: 6px; }
+  .stat-card .stat-note { font-size: 12.5px; color: var(--text-secondary); margin-top: 6px; }
+
+  /* Use-case example line */
+  .usecase .example {
+    display: block; margin-top: 10px; font-size: 13px;
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    color: var(--text-secondary); background: var(--code-bg); border-radius: 8px;
+    padding: 7px 10px;
+  }
+
+  /* Copy button on code blocks */
+  .code-block { position: relative; }
+  .copy-btn {
+    position: absolute; top: 10px; right: 10px;
+    background: var(--bg-subtle); border: 1px solid var(--border); border-radius: 6px;
+    color: var(--text-secondary); font-size: 11px; font-weight: 600;
+    padding: 5px 9px; cursor: pointer; font-family: inherit;
+  }
+  .copy-btn:hover { color: var(--text); border-color: var(--text-secondary); }
+  .copy-btn.copied { color: var(--accent); border-color: var(--accent); }
+
+  /* Prompt block for AI coding agents */
+  .prompt-block {
+    background: var(--bg-subtle); border: 1px solid var(--border); border-radius: 14px;
+    padding: 22px; margin-top: 16px;
+  }
+  .prompt-block .code-label { margin-bottom: 10px; }
+  .prompt-block pre { background: var(--card-bg); }
+
+  /* FAQ */
+  .faq-item { border-bottom: 1px solid var(--border); padding: 20px 0; }
+  .faq-item:first-child { padding-top: 0; }
+  .faq-item:last-child { border-bottom: none; }
+  .faq-item h4 { font-size: 16px; font-weight: 600; margin: 0 0 8px; }
+  .faq-item p { font-size: 14.5px; color: var(--text-secondary); margin: 0; line-height: 1.6; }
+
+  /* Footer */
+  footer {
+    max-width: 980px; margin: 0 auto; padding: 50px 22px 80px;
+    border-top: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;
+  }
+  footer .foot-links { display: flex; gap: 22px; flex-wrap: wrap; }
+  footer .foot-links a { font-size: 13px; color: var(--text-secondary); }
+  footer .copyright { font-size: 12px; color: var(--text-secondary); }
+
+  .lang-rows { display:flex; flex-direction:column; gap:10px; }
+  .lang-row { display:grid; grid-template-columns: 170px 1fr 48px; gap:12px; align-items:center; font-size:14px; }
+  .lang-row .lbl { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .lang-row .lbl small { display:block; font-family: inherit; color: var(--text-secondary); font-size:12px; }
+  .lang-row .bar { height:8px; border-radius:4px; background: var(--border); overflow:hidden; }
+  .lang-row .bar i { display:block; height:100%; background: var(--accent); border-radius:4px; }
+  .lang-row .pct { text-align:right; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+  @media (max-width: 520px) { .lang-row { grid-template-columns: 120px 1fr 44px; } }
+
+  .shot { padding:0; overflow:hidden; }
+  .shot img { width:100%; display:block; border-bottom:1px solid var(--border); }
+  .shot-caption { padding:20px; }
+  .table-note { font-size:14px; color:var(--text-secondary); margin-top:18px; line-height:1.6; }
+  .table-wrap { overflow-x:auto; }
+  @media (max-width: 720px) { .nav-links { display:none; } .hero { padding-top:60px; } }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <div class="nav-brand">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="1" y="1" width="22" height="22" rx="7" fill="var(--accent)"/><path d="M10 18h4l-.8-8h-2.4Z" fill="#fff"/><path d="M9.2 10h5.6M12 7.4v.6" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/><path d="M6.5 6.5 8.5 8M17.5 6.5 15.5 8" stroke="#fff" stroke-width="1.4" stroke-linecap="round"/></svg>
+      Beacon
+    </div>
+    <div class="nav-links">
+      <a href="#screenshots">Screenshots</a>
+      <a href="#install">Install</a>
+      <a href="#usage">Usage</a>
+      <a href="#accuracy">Accuracy</a>
+      <a href="#api">API</a>
+      <a href="#faq">FAQ</a>
+    </div>
+    <a class="nav-cta" href="https://github.com/rajumark/beacon">GitHub ↗</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="eyebrow">Beacon · by Hoverfly</div>
+  <h1>Know the language<br>of every message.</h1>
+  <p class="tagline">Detect the language and script of any text, even a two-word chat message or Hinglish, in under a tenth of a millisecond. It runs on the phone and sends nothing to a server.</p>
+  <div class="hero-actions">
+    <a class="btn btn-primary" href="#install">Get started</a>
+    <a class="btn btn-secondary" href="https://github.com/rajumark/beacon">View source</a>
+  </div>
+  <p class="hero-trust">Free &amp; open source · Apache-2.0 code · Live on JitPack</p>
+  <div class="hero-demo" id="heroDemo">
+    <div class="prompt" id="demoPrompt">beacon.candidates("Kal milte hain bhai")</div>
+    <div class="input-row" id="demoInput">Kal milte hain bhai</div>
+    <div class="lang-rows" id="demoRows"></div>
+  </div>
+</header>
+
+<section id="features">
+  <div class="section-head">
+    <div class="kicker">Why Beacon</div>
+    <h2>Built for chat, not just clean sentences</h2>
+    <p>Most language detectors are trained on long, tidy text. Beacon was trained for short messages, mixed scripts and Indian languages typed in Latin letters.</p>
+  </div>
+  <div class="grid">
+    <div class="card">
+      <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.5 7.2L4 20l1.2-4.3A8 8 0 1 1 21 12Z"/><path d="M8.5 11h7M8.5 14h4"/></svg></span>
+      <h3>Romanised Indic</h3>
+      <p>Tells Hinglish, Tanglish, Banglish and 9 more romanised South Asian languages apart, at 93% accuracy. Other detectors score close to 0% here.</p>
+    </div>
+    <div class="card">
+      <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8.5 12 3 3 8.5v7L12 21l9-5.5v-7Z"/><path d="M3 8.5 12 14l9-5.5"/><path d="M12 14v7"/></svg></span>
+      <h3>No dependencies</h3>
+      <p>Pure Kotlin inference. There is no ML Kit, TFLite or native code, and no Google Play services requirement. It adds about 8.5 MB to your APK.</p>
+    </div>
+    <div class="card">
+      <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
+      <h3>Private &amp; offline</h3>
+      <p>The model ships inside the AAR. It makes no network calls, needs no permissions and sends no telemetry, so user text never leaves the phone.</p>
+    </div>
+    <div class="card">
+      <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M13 3 5 13h6l-1 8 8-10h-6l1-8Z"/></svg></span>
+      <h3>Fast</h3>
+      <p>About 0.08 ms per text on an Android emulator. That is fast enough to re-detect on every keystroke.</p>
+    </div>
+  </div>
+  <div class="stat-grid" style="margin-top: 40px;">
+    <div class="stat-card"><div class="stat-value">211</div><div class="stat-label">Labels</div><div class="stat-note">language + script pairs</div></div>
+    <div class="stat-card"><div class="stat-value">88%</div><div class="stat-label">Chat accuracy</div><div class="stat-note">vs 71% for ML Kit</div></div>
+    <div class="stat-card"><div class="stat-value">~0.08ms</div><div class="stat-label">Per text</div><div class="stat-note">on device, once warm</div></div>
+    <div class="stat-card"><div class="stat-value">~8.5MB</div><div class="stat-label">On-device</div><div class="stat-note">model in the AAR</div></div>
+  </div>
+</section>
+
+<section id="screenshots">
+  <div class="section-head">
+    <div class="kicker">On device</div>
+    <h2>Same language, any script</h2>
+    <p>Real output from the sample app on an Android emulator. These are not mockups.</p>
+  </div>
+  <div class="grid">
+    <div class="card shot">
+      <img src="screenshots/beacon-hinglish.png" alt="Beacon detecting Hindi (romanised) for Kal milte hain bhai" loading="lazy">
+      <div class="shot-caption"><h3>Hinglish</h3><p>"Kal milte hain bhai" → hin_Latn, with Urdu (romanised) a close second</p></div>
+    </div>
+    <div class="card shot">
+      <img src="screenshots/beacon-tanglish.png" alt="Beacon detecting Tamil (romanised) for Enna panra da" loading="lazy">
+      <div class="shot-caption"><h3>Tanglish</h3><p>"Enna panra da" → tam_Latn, 98%</p></div>
+    </div>
+    <div class="card shot">
+      <img src="screenshots/beacon-tamil.png" alt="Beacon detecting Tamil script" loading="lazy">
+      <div class="shot-caption"><h3>Tamil script</h3><p>"நான் வீட்டுக்கு போறேன்" → tam_Taml, 94%</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="install">
+  <div class="section-head">
+    <div class="kicker">Install</div>
+    <h2>Add it to your build</h2>
+    <p>One line in your Gradle file, available now via JitPack. No API key, no account.</p>
+  </div>
+  <div class="code-block">
+    <div class="code-label">JitPack <span class="tag-pill live">live</span></div>
+    <button class="copy-btn" type="button">Copy</button>
+    <pre><code class="language-kotlin">// settings.gradle.kts
+dependencyResolutionManagement {
+    repositories {
+        mavenCentral()
+        maven { url = uri("https://jitpack.io") }
+    }
+}
+
+// build.gradle.kts
+dependencies {
+    implementation("com.github.rajumark:beacon:v1.0.0")
+}</code></pre>
+  </div>
+  <div class="prompt-block">
+    <div class="code-label">Build with a prompt</div>
+    <div class="code-block">
+      <button class="copy-btn" type="button">Copy</button>
+      <pre><code>Add Beacon from rajumark to this Android project (Kotlin).
+
+What it does: on-device language detection for 211 languages and scripts, including romanised Indian languages (Hinglish, Tanglish). ~8.5 MB, no dependencies, no network.
+
+Install (JitPack):
+  settings.gradle.kts: add maven { url = uri("https://jitpack.io") } to repositories
+  build.gradle.kts: implementation("com.github.rajumark:beacon:v1.0.0")
+
+Usage:
+  val beacon = Beacon(context)          // off the main thread, keep one instance
+  val r = beacon.detect("Kal milte hain bhai")
+  r.label   // "hin_Latn"
+
+Repo: https://github.com/rajumark/beacon#readme
+Add the dependency, then follow the README for the exact API and current version.</code></pre>
+    </div>
+  </div>
+</section>
+
+<section id="usage">
+  <div class="section-head">
+    <div class="kicker">Usage</div>
+    <h2>Two lines to a language</h2>
+    <p>Load once and reuse the instance. <code>detect()</code> is thread-safe.</p>
+  </div>
+  <div class="two-col">
+    <div class="code-block">
+      <div class="code-label">Kotlin</div>
+      <button class="copy-btn" type="button">Copy</button>
+      <pre><code class="language-kotlin">val beacon = Beacon(context)
+
+val r = beacon.detect("Kal milte hain bhai")
+r.label      // "hin_Latn"
+r.name       // "Hindi (romanised)"
+r.isReliable // true
+
+beacon.close()</code></pre>
+    </div>
+    <div class="code-block">
+      <div class="code-label">Java</div>
+      <button class="copy-btn" type="button">Copy</button>
+      <pre><code class="language-java">try (Beacon beacon = new Beacon(context)) {
+    DetectedLanguage r =
+        beacon.detect("Kal milte hain bhai");
+    String label = r.getLabel();
+}</code></pre>
+    </div>
+  </div>
+</section>
+
+<section id="use-cases">
+  <div class="section-head">
+    <div class="kicker">Use cases</div>
+    <h2>Where Beacon fits</h2>
+    <p>Anywhere your app needs to know which language it is looking at before it does something with the text.</p>
+  </div>
+  <div class="usecase-list">
+    <div class="usecase">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="19" height="12" rx="2"/><path d="M6 10h.01M9.5 10h.01M13 10h.01M16.5 10h.01M6 14h12"/></svg></div>
+      <div><h4>Keyboards</h4><p>Switch the suggestion dictionary or layout to the language the user is actually typing.</p><code class="example">"Enna panra da" → tam_Latn</code></div>
+    </div>
+    <div class="usecase">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h9M8.5 3v2M6 5c.5 3 2.5 5.5 5 7M11 5c-.5 3-2.5 6-6 8"/><path d="m12 21 4.5-10L21 21M13.5 17.5h6"/></svg></div>
+      <div><h4>Translation</h4><p>Pick the source language automatically, even for romanised text that looks like English.</p><code class="example">"Nos vemos mañana" → spa_Latn</code></div>
+    </div>
+    <div class="usecase">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg></div>
+      <div><h4>Text-to-speech</h4><p>Choose the right TTS voice before reading a message aloud.</p><code class="example">"ఎలా ఉన్నారు?" → tel_Telu</code></div>
+    </div>
+    <div class="usecase">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v12H8l-4 4Z"/><path d="M8 8h8M8 12h5"/></svg></div>
+      <div><h4>Support routing</h4><p>Send a ticket to an agent who speaks the customer's language, before anyone reads it.</p><code class="example">"Aap kaise ho" → hin_Latn</code></div>
+    </div>
+    <div class="usecase">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18l-7 8v6l-4 2v-8Z"/></svg></div>
+      <div><h4>Content filtering</h4><p>Filter feeds, comments or search results by language on the device.</p><code class="example">"Je suis en retard" → fra_Latn</code></div>
+    </div>
+    <div class="usecase">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="12" r="2.5"/><path d="M8.3 7.2 15.7 10.8M8.3 16.8l7.4-3.6"/></svg></div>
+      <div><h4>Model routing</h4><p>Send Hindi and Hinglish to different models, or turn on smart replies only for languages you support.</p><code class="example">"मैं घर जा रहा हूँ" → hin_Deva</code></div>
+    </div>
+  </div>
+</section>
+
+<section id="accuracy">
+  <div class="section-head">
+    <div class="kicker">Accuracy</div>
+    <h2>Best where others struggle</h2>
+    <p>Beacon compared with the best of fastText, OpenLID, MediaPipe, CLD2, langid.py, Lingua and ML Kit on each test.</p>
+  </div>
+  <table>
+    <thead><tr><th>Test</th><th>Beacon</th><th>Best other detector</th></tr></thead>
+    <tbody>
+      <tr><td>FLORES-200, 64 shared languages</td><td>98.5%</td><td>OpenLID-201 98.9% (158 MB)</td></tr>
+      <tr><td>Short text, ≤ 5 words</td><td><strong>93.8%</strong></td><td>Lingua 89.0%</td></tr>
+      <tr><td>Chat messages (188 hand-written)</td><td><strong>88.3%</strong></td><td>MediaPipe 71.3%</td></tr>
+      <tr><td>Romanised Indic (human + real chat)</td><td><strong>93.0%</strong></td><td>MediaPipe 7.5%, others ~0%</td></tr>
+    </tbody>
+  </table>
+  <p class="table-note">Known limits: single words are hard (65%). Close pairs stay close: Bosnian/Croatian/Serbian, Indonesian/Malay, and romanised Hindi vs romanised Urdu, which are the same spoken language.</p>
+</section>
+
+<section id="api">
+  <div class="section-head">
+    <div class="kicker">Reference</div>
+    <h2>API at a glance</h2>
+  </div>
+  <table>
+    <thead><tr><th>Member</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><code>Beacon(context)</code></td><td>Loads the bundled model. Implements <code>Closeable</code>.</td></tr>
+      <tr><td><code>detect(text)</code></td><td>The most likely language, or <code>DetectedLanguage.UNDETERMINED</code> when the text has no letters.</td></tr>
+      <tr><td><code>candidates(text, limit = 3)</code></td><td>The most likely languages, best first.</td></tr>
+      <tr><td><code>supportedLabels</code></td><td>All 211 labels, such as <code>hin_Latn</code> or <code>tam_Taml</code>.</td></tr>
+      <tr><td><code>DetectedLanguage(label, language, script, name, confidence)</code></td><td>One result, with ISO 639-3 language and ISO 15924 script codes and <code>isReliable</code>.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="faq">
+  <div class="section-head">
+    <div class="kicker">FAQ</div>
+    <h2>Questions</h2>
+  </div>
+  <div class="faq-item"><h4>What is Beacon?</h4><p>An Android library that returns the language and script of a piece of text, from a list of 211 labels. That list includes all 22 scheduled Indian languages and 12 romanised South Asian languages.</p></div>
+  <div class="faq-item"><h4>What does "hin_Latn" mean?</h4><p>Language plus script: Hindi (ISO 639-3 <code>hin</code>) written in Latin letters (ISO 15924 <code>Latn</code>). The same language in Devanagari is <code>hin_Deva</code>.</p></div>
+  <div class="faq-item"><h4>Does it run on device?</h4><p>Yes. Inference runs entirely on the device in plain Kotlin. It makes no server calls, needs no network permission and sends no telemetry.</p></div>
+  <div class="faq-item"><h4>How does it compare to ML Kit Language ID?</h4><p>On an Android emulator it scored 88.3% vs 71.3% on chat, 93.2% vs 84.0% on short text, and 92.1% vs 6.9% on romanised Indic. It also needs no Google Play services.</p></div>
+  <div class="faq-item"><h4>Is the Kotlin port exact?</h4><p>Normalization, feature ids and predicted labels match the Python reference on all 958 test vectors, both on the JVM and on an Android device.</p></div>
+  <div class="faq-item"><h4>What does it cost?</h4><p>Nothing. The code is Apache-2.0 and there are no usage limits or accounts. The training data sources are listed in the NOTICE file.</p></div>
+</section>
+
+<footer>
+  <div class="foot-links">
+    <a href="https://github.com/rajumark/beacon">GitHub</a>
+    <a href="https://github.com/rajumark/beacon/blob/main/LICENSE">Apache-2.0 License</a>
+    <a href="https://github.com/rajumark/beacon/blob/main/NOTICE">Notice</a>
+    <a href="https://rajumark.github.io/moji/">Moji</a>
+    <a href="https://rajumark.github.io/comeback/">Comeback</a>
+  </div>
+  <div class="copyright">© 2026 Hoverfly · Beacon</div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/kotlin.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/java.min.js"></script>
+<script>
+  if (window.hljs) { document.querySelectorAll('pre code[class*="language-"]').forEach(function (b) { hljs.highlightElement(b); }); }
+</script>
+
+<script>
+  document.querySelectorAll(".copy-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var code = btn.closest(".code-block").querySelector("pre code");
+      if (!code) return;
+      navigator.clipboard.writeText(code.textContent).then(function () {
+        var original = btn.textContent;
+        btn.textContent = "Copied";
+        btn.classList.add("copied");
+        window.setTimeout(function () {
+          btn.textContent = original;
+          btn.classList.remove("copied");
+        }, 1500);
+      });
+    });
+  });
+</script>
+
+<script>
+  // Real output from the model, rotating every 6 s.
+  var DEMO = [["Kal milte hain bhai", [["hin_Latn", "Hindi (romanised)", 0.5], ["urd_Latn", "Urdu (romanised)", 0.44], ["tam_Latn", "Tamil (romanised)", 0.01]]], ["Enna panra da", [["tam_Latn", "Tamil (romanised)", 0.98], ["mal_Latn", "Malayalam (romanised)", 0.0], ["kan_Latn", "Kannada (romanised)", 0.0]]], ["Ami tomake bhalobashi", [["ben_Latn", "Bengali (romanised)", 0.87], ["zul_Latn", "Zulu", 0.01], ["mar_Latn", "Marathi (romanised)", 0.01]]], ["मैं घर जा रहा हूँ", [["hin_Deva", "Hindi", 0.96], ["doi_Deva", "Dogri", 0.0], ["hne_Deva", "Chhattisgarhi", 0.0]]], ["Ninna hesaru enu", [["kan_Latn", "Kannada (romanised)", 0.98], ["tel_Latn", "Telugu (romanised)", 0.0], ["mal_Latn", "Malayalam (romanised)", 0.0]]], ["ఎలా ఉన్నారు?", [["tel_Telu", "Telugu", 0.97], ["bam_Latn", "Bambara", 0.0], ["tgk_Cyrl", "Tajik", 0.0]]], ["Nos vemos mañana", [["spa_Latn", "Spanish", 0.81], ["glg_Latn", "Galician", 0.09], ["ast_Latn", "Asturian", 0.02]]], ["Main thoda late ho jaunga", [["hin_Latn", "Hindi (romanised)", 0.84], ["tam_Latn", "Tamil (romanised)", 0.02], ["snd_Latn", "Sindhi (romanised)", 0.01]]], ["今日はいい天気ですね", [["jpn_Jpan", "Japanese", 0.93], ["yue_Hant", "Cantonese", 0.0], ["cmn_Hant", "Chinese (Mandarin), Traditional", 0.0]]], ["Wir sehen uns morgen", [["deu_Latn", "German", 0.98], ["kha_Latn", "Khasi", 0.0], ["eng_Latn", "English", 0.0]]]];
+  (function () {
+    var demo = document.getElementById("heroDemo");
+    var i = 0;
+    function esc(s) { var d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
+    function render(ex) {
+      document.getElementById("demoPrompt").textContent = 'beacon.candidates("' + ex[0] + '")';
+      document.getElementById("demoInput").textContent = ex[0];
+      document.getElementById("demoRows").innerHTML = ex[1].map(function (c) {
+        var pct = Math.round(c[2] * 100);
+        return '<div class="lang-row"><div class="lbl">' + esc(c[0]) + '<small>' + esc(c[1]) + '</small></div>' +
+          '<div class="bar"><i style="width:' + Math.max(pct, 1) + '%"></i></div><div class="pct">' + pct + '%</div></div>';
+      }).join("");
+    }
+    render(DEMO[0]);
+    window.setInterval(function () {
+      demo.classList.add("is-fading");
+      window.setTimeout(function () { i = (i + 1) % DEMO.length; render(DEMO[i]); demo.classList.remove("is-fading"); }, 350);
+    }, 6000);
+  })();
+</script>
+</body>
+</html>
