@@ -329,6 +329,16 @@
   .table-note { font-size:14px; color:var(--text-secondary); margin-top:18px; line-height:1.6; }
   .table-wrap { overflow-x:auto; }
   @media (max-width: 720px) { .nav-links { display:none; } .hero { padding-top:60px; } }
+
+  /* App ideas */
+  .idea-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 12px; }
+  .idea {
+    display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px;
+    background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px;
+  }
+  .idea .emo { font-size: 22px; line-height: 1.2; flex: none; }
+  .idea p { margin: 0; font-size: 14px; line-height: 1.45; color: var(--text-secondary); }
+  .idea p b { color: var(--text); font-weight: 600; }
 </style>
 </head>
 <body>
@@ -344,6 +354,7 @@
       <a href="#install">Install</a>
       <a href="#usage">Usage</a>
       <a href="#accuracy">Accuracy</a>
+      <a href="#ideas">Ideas</a>
       <a href="#api">API</a>
       <a href="#pricing">Pricing</a>
       <a href="#faq">FAQ</a>
@@ -533,6 +544,36 @@ beacon.close()</code></pre>
       <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="12" r="2.5"/><path d="M8.3 7.2 15.7 10.8M8.3 16.8l7.4-3.6"/></svg></div>
       <div><h4>Model routing</h4><p>Send Hindi and Hinglish to different models, or turn on smart replies only for languages you support.</p><code class="example">"मैं घर जा रहा हूँ" → hin_Deva</code></div>
     </div>
+  </div>
+</section>
+
+<section id="ideas">
+  <div class="section-head">
+    <div class="kicker">App ideas</div>
+    <h2>20 apps you could build with Beacon</h2>
+    <p>Real problems Beacon solves today. Pick one and ship it.</p>
+  </div>
+  <div class="idea-list">
+    <div class="idea"><span class="emo" aria-hidden="true">⌨️</span><p><b>Smart keyboard</b> · Switch the dictionary the moment a user flips from English to Hinglish mid-sentence.</p></div>
+    <div class="idea"><span class="emo" aria-hidden="true">🌐</span><p><b>Auto-translate chat</b> · Translate only the messages that aren't in the reader's language and leave the rest alone.</p></div>
+    <div class="idea"><span class="emo" aria-hidden="true">🔊</span><p><b>Read-aloud app</b> · Pick the right text-to-speech voice for each message before speaking it.</p></div>
+    <div class="idea"><span class="emo" aria-hidden="true">🎧</span><p><b>Support ticket router</b> · Assign each ticket to an agent who speaks the customer's language, before anyone reads it.</p></div>
+    <div class="idea"><span class="emo" aria-hidden="true">🤖</span><p><b>Chatbot that answers in kind</b> · Reply in the same language and script the user typed in, Tanglish included.</p></div>
+    <div class="idea"><span class="emo" aria-hidden="true">🔎</span><p><b>Multilingual search</b> · Send "sasta phone chahiye" to the Hindi analyzer, not the English one.</p></div>
+    <div class="idea"><span class="emo" aria-hidden="true">📰</span><p><b>Regional news feed</b> · Show each user only the articles and comments in languages they actually read.</p></div>
+    <div class="idea"><span class="emo" aria-hidden="true">🛡️</span><p><b>Moderation pre-check</b> · Route each message to the moderation model trained for its language.</p></div>
+    <div class="idea"><span class="emo" aria-hidden="true">✍️</span><p><b>Spell checker</b> · Load the right spell-check dictionary per sentence in bilingual text.</p></div>
+    <div class="idea"><span class="emo" aria-hidden="true">🔤</span><p><b>Font &amp; direction picker</b> · Choose the right font and RTL/LTR layout for Urdu, Arabic or Tamil before rendering.</p></div>
+    <div class="idea"><span class="emo" aria-hidden="true">💬</span><p><b>Smart reply gating</b> · Show reply chips only when the message is in a language your reply model supports.</p></div>
+    <div class="idea"><span class="emo" aria-hidden="true">📚</span><p><b>Language-learning app</b> · Check the learner answered in Spanish, not English, before grading the answer.</p></div>
+    <div class="idea"><span class="emo" aria-hidden="true">🏷️</span><p><b>Review sorter</b> · Group app-store or product reviews by language for regional support teams.</p></div>
+    <div class="idea"><span class="emo" aria-hidden="true">📊</span><p><b>Private language analytics</b> · Learn which languages your users type in without sending a single message to a server.</p></div>
+    <div class="idea"><span class="emo" aria-hidden="true">📝</span><p><b>Notes auto-tagging</b> · Tag notes by language so bilingual users can filter Hindi notes from English ones.</p></div>
+    <div class="idea"><span class="emo" aria-hidden="true">🎬</span><p><b>Subtitle checker</b> · Verify a subtitle track is really in the language its label claims.</p></div>
+    <div class="idea"><span class="emo" aria-hidden="true">🧾</span><p><b>Form validation</b> · Warn when a "Name in Hindi" field is filled with English letters.</p></div>
+    <div class="idea"><span class="emo" aria-hidden="true">📣</span><p><b>Notification language</b> · Send push notifications in the language each user chats in, not just the phone locale.</p></div>
+    <div class="idea"><span class="emo" aria-hidden="true">🏛️</span><p><b>Civic complaint app</b> · Route citizen complaints in any of the 22 Indian languages to the right state office.</p></div>
+    <div class="idea"><span class="emo" aria-hidden="true">🗂️</span><p><b>Dataset cleaner</b> · Filter user-generated text by language on the device before it is uploaded or labelled.</p></div>
   </div>
 </section>
 
