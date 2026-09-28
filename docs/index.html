@@ -361,6 +361,25 @@
   .hero-demo .prompt { font-family: var(--mono); color: var(--accent); }
   .hero-demo .input-row { border: 0; border-radius: 16px; box-shadow: var(--shadow); padding: 14px 18px; }
   @media (max-width: 640px) { .hero-demo { padding: 24px 18px; border-radius: 24px; } }
+  /* Hero demo: type, spin a language reel, lock onto the answer, grow the bars */
+  .hero-demo .demo-input { min-height: 1.5em; font-size: 18px; }
+  .demo-input .caret { display: inline-block; width: 2px; height: 1.1em; margin-left: 1px; vertical-align: -0.15em; background: var(--accent); animation: caret-blink 1s steps(1) infinite; }
+  .reel-row { display: flex; align-items: center; gap: 14px; margin: 0 0 20px; }
+  .reel-label { font-size: 13px; font-weight: 500; color: var(--text-secondary); letter-spacing: .02em; }
+  .reel { position: relative; flex: 1; height: 48px; overflow: hidden; border-radius: 14px; background: var(--card-bg); box-shadow: var(--shadow); }
+  .reel::before, .reel::after { content: ""; position: absolute; left: 0; right: 0; height: 14px; z-index: 1; pointer-events: none; }
+  .reel::before { top: 0; background: linear-gradient(var(--card-bg), transparent); }
+  .reel::after { bottom: 0; background: linear-gradient(transparent, var(--card-bg)); }
+  .reel-item { display: flex; align-items: center; gap: 10px; height: 48px; padding: 0 16px; font-size: 17px; font-weight: 500; color: var(--text-strong); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .reel-item code { font: 500 13px/1 var(--mono); padding: 5px 8px; border-radius: 8px; background: var(--tonal); color: var(--accent); }
+  .reel-item.is-win code { background: var(--green); color: var(--green-ink); }
+  .reel.is-locked { animation: reel-lock .45s ease; box-shadow: 0 0 0 3px var(--green), var(--shadow); }
+  .lang-row { opacity: 0; transform: translateY(6px); transition: opacity .3s ease, transform .3s ease; }
+  .lang-row.is-in { opacity: 1; transform: none; }
+  .lang-row .bar i { width: 0; transition: width .9s cubic-bezier(.2,.8,.2,1); }
+  @keyframes caret-blink { 50% { opacity: 0; } }
+  @keyframes reel-lock { 0% { transform: scale(1); } 40% { transform: scale(1.04); } 100% { transform: scale(1); } }
+  @media (prefers-reduced-motion: reduce) { .lang-row { opacity: 1; transform: none; } }
 
   /* Buttons: 48px Material pills */
   .btn { height: 48px; padding: 0 24px; border: 0; font-size: 16px; font-weight: 500; justify-content: center; transition: box-shadow .2s, background .2s; }
@@ -494,9 +513,17 @@
   </div>
   <p class="hero-trust">Free up to 10k monthly active devices · No API key · Live on JitPack</p>
   <div class="hero-demo" id="heroDemo">
-    <div class="prompt" id="demoPrompt">beacon.candidates("Kal milte hain bhai")</div>
-    <div class="input-row" id="demoInput">Kal milte hain bhai</div>
-    <div class="lang-rows" id="demoRows"></div>
+    <div class="prompt" id="demoPrompt">beacon.candidates(text)</div>
+    <div class="input-row demo-input" id="demoInput">Kal milte hain bhai</div>
+    <div class="reel-row">
+      <span class="reel-label">Detected</span>
+      <div class="reel" id="demoReel"><div class="reel-track" id="reelTrack"><div class="reel-item is-win"><code>hin_Latn</code>Hindi (romanised)</div></div></div>
+    </div>
+    <div class="lang-rows" id="demoRows">
+      <div class="lang-row"><div class="lbl">hin_Latn<small>Hindi (romanised)</small></div><div class="bar"><i style="width:50%"></i></div><div class="pct">50%</div></div>
+      <div class="lang-row"><div class="lbl">urd_Latn<small>Urdu (romanised)</small></div><div class="bar"><i style="width:44%"></i></div><div class="pct">44%</div></div>
+      <div class="lang-row"><div class="lbl">tam_Latn<small>Tamil (romanised)</small></div><div class="bar"><i style="width:1%"></i></div><div class="pct">1%</div></div>
+    </div>
   </div>
 </header>
 
@@ -849,26 +876,55 @@ beacon.close()</code></pre>
 </script>
 
 <script>
-  // Real output from the model, rotating every 6 s.
   var DEMO = [["Kal milte hain bhai", [["hin_Latn", "Hindi (romanised)", 0.5], ["urd_Latn", "Urdu (romanised)", 0.44], ["tam_Latn", "Tamil (romanised)", 0.01]]], ["Enna panra da", [["tam_Latn", "Tamil (romanised)", 0.98], ["mal_Latn", "Malayalam (romanised)", 0.0], ["kan_Latn", "Kannada (romanised)", 0.0]]], ["Ami tomake bhalobashi", [["ben_Latn", "Bengali (romanised)", 0.87], ["zul_Latn", "Zulu", 0.01], ["mar_Latn", "Marathi (romanised)", 0.01]]], ["मैं घर जा रहा हूँ", [["hin_Deva", "Hindi", 0.96], ["doi_Deva", "Dogri", 0.0], ["hne_Deva", "Chhattisgarhi", 0.0]]], ["Ninna hesaru enu", [["kan_Latn", "Kannada (romanised)", 0.98], ["tel_Latn", "Telugu (romanised)", 0.0], ["mal_Latn", "Malayalam (romanised)", 0.0]]], ["ఎలా ఉన్నారు?", [["tel_Telu", "Telugu", 0.97], ["bam_Latn", "Bambara", 0.0], ["tgk_Cyrl", "Tajik", 0.0]]], ["Nos vemos mañana", [["spa_Latn", "Spanish", 0.81], ["glg_Latn", "Galician", 0.09], ["ast_Latn", "Asturian", 0.02]]], ["Main thoda late ho jaunga", [["hin_Latn", "Hindi (romanised)", 0.84], ["tam_Latn", "Tamil (romanised)", 0.02], ["snd_Latn", "Sindhi (romanised)", 0.01]]], ["今日はいい天気ですね", [["jpn_Jpan", "Japanese", 0.93], ["yue_Hant", "Cantonese", 0.0], ["cmn_Hant", "Chinese (Mandarin), Traditional", 0.0]]], ["Wir sehen uns morgen", [["deu_Latn", "German", 0.98], ["kha_Latn", "Khasi", 0.0], ["eng_Latn", "English", 0.0]]]];
+  // Real output from the model: typed, spun through a reel of language names, then locked onto the top candidate.
   (function () {
-    var demo = document.getElementById("heroDemo");
-    var i = 0;
-    function esc(s) { var d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
-    function render(ex) {
-      document.getElementById("demoPrompt").textContent = 'beacon.candidates("' + ex[0] + '")';
-      document.getElementById("demoInput").textContent = ex[0];
-      document.getElementById("demoRows").innerHTML = ex[1].map(function (c) {
-        var pct = Math.round(c[2] * 100);
-        return '<div class="lang-row"><div class="lbl">' + esc(c[0]) + '<small>' + esc(c[1]) + '</small></div>' +
-          '<div class="bar"><i style="width:' + Math.max(pct, 1) + '%"></i></div><div class="pct">' + pct + '%</div></div>';
-      }).join("");
+    var demo = document.getElementById("heroDemo"), input = document.getElementById("demoInput"),
+        reel = document.getElementById("demoReel"), track = document.getElementById("reelTrack"),
+        rows = document.getElementById("demoRows");
+    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    var POOL = [];
+    DEMO.forEach(function (ex) { ex[1].forEach(function (c) { if (!POOL.some(function (p) { return p[0] === c[0]; })) POOL.push(c); }); });
+    function sleep(ms) { return new Promise(function (r) { window.setTimeout(r, ms); }); }
+    function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+    function item(c, win) { var d = el("div", "reel-item" + (win ? " is-win" : "")); d.appendChild(el("code", "", c[0])); d.appendChild(document.createTextNode(c[1])); return d; }
+    function countUp(node, to, ms) {
+      var t0 = performance.now();
+      (function f(t) { var k = Math.min(1, (t - t0) / ms); node.textContent = Math.round(to * (1 - Math.pow(1 - k, 3))) + "%"; if (k < 1) requestAnimationFrame(f); })(t0);
     }
-    render(DEMO[0]);
-    window.setInterval(function () {
-      demo.classList.add("is-fading");
-      window.setTimeout(function () { i = (i + 1) % DEMO.length; render(DEMO[i]); demo.classList.remove("is-fading"); }, 350);
-    }, 6000);
+    async function play(ex) {
+      input.textContent = ""; rows.innerHTML = ""; reel.classList.remove("is-locked");
+      track.style.transition = "none"; track.style.transform = "none"; track.innerHTML = "";
+      track.appendChild(el("div", "reel-item", "…"));
+      var typed = document.createTextNode(""), caret = el("span", "caret");
+      input.appendChild(typed); input.appendChild(caret);
+      var chars = Array.from(ex[0]);
+      for (var i = 0; i < chars.length; i++) { typed.data += chars[i]; await sleep(chars[i] === " " ? 80 : 45 + Math.random() * 45); }
+      await sleep(250); caret.remove();
+
+      // Spin: a shuffled strip of real language names that ends on the winner.
+      var strip = POOL.filter(function (c) { return c[0] !== ex[1][0][0]; }).sort(function () { return Math.random() - .5; }).slice(0, 18);
+      strip.forEach(function (c) { track.appendChild(item(c)); });
+      track.appendChild(item(ex[1][0], true));
+      var h = reel.clientHeight, steps = track.children.length - 1;
+      track.offsetHeight;
+      track.style.transition = "transform 1.6s cubic-bezier(.12,.72,.18,1)";
+      track.style.transform = "translateY(" + (-steps * h) + "px)";
+      await sleep(1650);
+      reel.classList.add("is-locked");
+      await sleep(250);
+
+      ex[1].forEach(function (c, k) {
+        var pct = Math.round(c[2] * 100), row = el("div", "lang-row"), lbl = el("div", "lbl", c[0]), bar = el("div", "bar"), fill = el("i"), val = el("div", "pct", "0%");
+        lbl.appendChild(el("small", "", c[1])); bar.appendChild(fill);
+        row.appendChild(lbl); row.appendChild(bar); row.appendChild(val); rows.appendChild(row);
+        window.setTimeout(function () { row.classList.add("is-in"); fill.style.width = Math.max(pct, 1) + "%"; countUp(val, pct, 900); }, 120 + k * 160);
+      });
+      await sleep(3600);
+      demo.classList.add("is-fading"); await sleep(380);
+      demo.classList.remove("is-fading");
+    }
+    (async function loop() { var i = 0; for (;;) { await play(DEMO[i]); i = (i + 1) % DEMO.length; } })();
   })();
 </script>
 </body>
