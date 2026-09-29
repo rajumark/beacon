@@ -1,11 +1,11 @@
 # Beacon 🗼
 
-By Hoverfly. On-device language detection for Android. You give it any text, even a two-word chat message, and it tells you the language **and** the script. It also recognises romanised Indian languages like Hinglish and Tanglish.
+By Hoverfly. On-device language detection for **Kotlin Multiplatform**: Android, iOS, macOS, JVM desktop, JavaScript and WebAssembly. You give it any text, even a two-word chat message, and it tells you the language **and** the script. It also recognises romanised Indian languages like Hinglish and Tanglish.
 
 ```kotlin
 import io.github.rajumark.hoverfly.beacon.Beacon
 
-Beacon(context).use { beacon ->
+Beacon().use { beacon ->
     beacon.detect("Kal milte hain bhai").label   // "hin_Latn"  Hindi (romanised)
 }
 ```
@@ -20,29 +20,32 @@ Beacon(context).use { beacon ->
 ```
 
 - **211 labels.** 195 language/script pairs, all 22 scheduled Indian languages, and 12 romanised South Asian languages (`hin_Latn`, `tam_Latn`, `urd_Latn`, `ben_Latn`, …).
-- **No dependencies.** Inference is plain Kotlin. There is no ML Kit, TFLite or native code, so the library adds about 8.5 MB to an APK.
-- **Private and offline.** The model ships inside the AAR. There is no network, no permission and no telemetry.
-- **Fast.** About 0.08 ms per text on an Android emulator (Apple silicon), ~35 µs on the JVM.
-- **minSdk 21.** Works from Kotlin and Java.
+- **No dependencies.** Inference is plain Kotlin. There is no ML Kit, TFLite or native code, so the library adds about 8.5 MB to an app.
+- **Private and offline.** The model ships inside the library on every platform. There is no network, no permission and no telemetry.
+- **Fast.** About 40–90 µs per text on JVM, Android, JS and Wasm once warm.
+- **Identical everywhere.** Every platform is tested against the Python reference on 958 vectors: same normalization, same features, same label.
 
 ## Install
 
-Available via [JitPack](https://jitpack.io/#rajumark/beacon):
-
 ```kotlin
-// settings.gradle.kts
-dependencyResolutionManagement {
-    repositories {
-        mavenCentral()
-        maven { url = uri("https://jitpack.io") }
-    }
-}
-
-// build.gradle.kts
+// build.gradle.kts: commonMain, or any platform source set
 dependencies {
-    implementation("com.github.rajumark:beacon:v1.1.0")
+    implementation("io.github.rajumark:beacon:2.0.0")
 }
 ```
+
+It's on Maven Central, so no extra repository is needed. Gradle picks the right artifact for each platform:
+
+| Platform | Artifact |
+|---|---|
+| Android (minSdk 21) | `beacon-android` |
+| JVM desktop (Java 8+) | `beacon-jvm` |
+| iOS device and simulator (arm64) | `beacon-iosarm64`, `beacon-iossimulatorarm64` |
+| macOS (arm64) | `beacon-macosarm64` |
+| JavaScript (browser, Node) | `beacon-js` |
+| WebAssembly (browser, Node) | `beacon-wasm-js` |
+
+The Android-only 1.x releases are on JitPack: `com.github.rajumark:beacon:v1.1.0`.
 
 ## Screenshots
 
@@ -53,12 +56,18 @@ The sample app on an emulator. Detection runs on the device, with no network rou
 | ![Hinglish example](docs/screenshots/beacon-hinglish.png) | ![Tanglish example](docs/screenshots/beacon-tanglish.png) | ![Tamil example](docs/screenshots/beacon-tamil.png) |
 | "Kal milte hain bhai" | "Enna panra da" | "நான் வீட்டுக்கு போறேன்" |
 
+The KMP sample on each platform:
+
+| Android | iOS | Desktop | Web (Wasm) |
+|---|---|---|---|
+| ![Android](screenshots/android/1-hinglish.png) | ![iOS](screenshots/ios/1-hinglish.png) | ![Desktop](screenshots/desktop/1-hinglish.png) | ![Web](screenshots/web-wasm/1-hinglish.png) |
+
 ## Use
 
 ```kotlin
 import io.github.rajumark.hoverfly.beacon.Beacon
 
-val beacon = Beacon(context)            // loads the model: ~60–800 ms, do it off the main thread, keep one instance
+val beacon = Beacon()                   // loads the model: tens of ms, do it off the main thread, keep one instance
 
 val r = beacon.detect("Kal milte hain bhai")
 r.label        // "hin_Latn"
@@ -73,7 +82,7 @@ beacon.candidates("Kal milte hain bhai", limit = 3)
 
 beacon.detect("😀 123")                 // DetectedLanguage.UNDETERMINED ("und")
 
-beacon.close()                          // frees the model's heap memory
+beacon.close()                          // frees the model's memory
 ```
 
 `detect()` is thread-safe and fast enough to call on every keystroke.
@@ -81,23 +90,25 @@ beacon.close()                          // frees the model's heap memory
 With coroutines:
 
 ```kotlin
-val beacon = withContext(Dispatchers.Default) { Beacon(context) }
+val beacon = withContext(Dispatchers.Default) { Beacon() }
 ```
 
 From Java:
 
 ```java
-try (Beacon beacon = new Beacon(context)) {
+try (Beacon beacon = new Beacon()) {
     DetectedLanguage r = beacon.detect("Kal milte hain bhai");
     String label = r.getLabel();   // "hin_Latn"
 }
 ```
 
+Upgrading from 1.x on Android: `Beacon(context)` still compiles in Kotlin (deprecated). The model no longer needs a `Context`, so switch to `Beacon()`. Java code must change `new Beacon(context)` to `new Beacon()`.
+
 ### API
 
 | | |
 |---|---|
-| `Beacon(context)` | Loads the bundled model. `Closeable`. |
+| `Beacon()` | Loads the bundled model. `AutoCloseable`. |
 | `detect(text)` | The most likely language. `DetectedLanguage.UNDETERMINED` when the text has no letters. |
 | `candidates(text, limit = 3)` | The most likely languages, best first. Empty when the text has no letters. |
 | `supportedLabels` | All 211 labels the model can return. |
@@ -125,38 +136,49 @@ On an Android emulator, against Google ML Kit Language ID: chat 88.3% vs 71.3%, 
 - Very short romanised Bengali, Gujarati, Punjabi and Marathi chat is weaker than Hinglish or Tanglish.
 - Romanised Hindi and romanised Urdu are the same spoken language (Hindustani). Treat `hin_Latn` and `urd_Latn` as one if your app doesn't need the difference.
 
-## Sample app
+## Sample apps
 
-`sample/` is a Jetpack Compose (Material 3) demo: live detection as you type, the top 3 candidates with confidence bars, and example chips.
+`sample/` is a separate Gradle build that uses the **published** library, never the source. It resolves `io.github.rajumark` only from Maven Local, or from Maven Central with `-PbeaconRepo=central`. It has a Compose Multiplatform app for Android, desktop and iOS, and a web page built for both Kotlin/JS and Kotlin/Wasm.
 
 ```bash
-./gradlew :sample:installDebug
+./gradlew :beacon:publishToMavenLocal
+cd sample
+./gradlew :androidApp:installRelease
+./gradlew :desktopApp:run
+./gradlew :webApp:wasmJsBrowserDevelopmentRun     # or :webApp:jsBrowserDevelopmentRun
+open iosApp/iosApp.xcodeproj                       # run the iosApp scheme on a simulator
 ```
 
 ## Project layout
 
 ```
-beacon/               the library (AAR)
-  src/main/assets/beacon/   beacon.beacon (int8 weights + labels)
-  src/main/kotlin/io/github/rajumark/hoverfly/beacon/          public API: Beacon, DetectedLanguage
-  src/main/kotlin/io/github/rajumark/hoverfly/beacon/internal/ Featurizer, Network (the model in plain Kotlin)
-  src/test/           JVM tests: parity with Python on 958 vectors, API, latency
-  src/androidTest/    the same parity check on a real device (Android ICU)
-sample/               demo app
+beacon/                        the library
+  src/commonMain/              public API (Beacon, DetectedLanguage) and the model in plain Kotlin
+                               (internal/: Featurizer, Network, UnicodeTables)
+  src/{jvm,android,apple,js,wasmJs}Main/   the only platform code: NFKC normalization + model loading
+  src/modelData/               beacon.beacon (int8 weights + labels)
+  src/commonTest/              parity with Python on 958 vectors, API, latency; runs on every target
+  src/jvmTest/                 checks the hand-written URL/letter matching against the 1.x java.util.regex
+sample/                        demo apps using the published artifacts
+scripts/GenTables.java         generates UnicodeTables.kt (character classes) so every platform agrees
+docs/                          website (rajumark.github.io/beacon)
 ```
+
+On JVM and Android the model ships as Java resources in the jar/AAR. Kotlin/Native and the web have no resources, so the build compiles it into the library (`generateEmbeddedModel`).
 
 ## Tests
 
 ```bash
-./gradlew :beacon:testDebugUnitTest                        # JVM: parity + API
-./gradlew :beacon:connectedDebugAndroidTest                # on a connected device/emulator
+./gradlew :beacon:jvmTest
+./gradlew :beacon:testAndroidHostTest
+./gradlew :beacon:connectedAndroidDeviceTest              # on a connected device/emulator
+./gradlew :beacon:iosSimulatorArm64Test
+./gradlew :beacon:macosArm64Test
+./gradlew :beacon:jsNodeTest :beacon:jsBrowserTest
+./gradlew :beacon:wasmJsNodeTest :beacon:wasmJsBrowserTest
 ```
 
-The parity tests require identical normalization, identical feature ids and the same label as the Python reference on all 958 vectors (short text, chat, romanised Indic, FLORES and edge cases). Probabilities match to within 1e-3; the current maximum difference is about 1e-6.
-
-## How it works
-
-Text is normalized (NFKC, lowercase, URLs and mentions dropped, non-letters become spaces), then split into character 1–4-grams and whole words. Each is hashed (FNV-1a) into one of five embedding tables. The mean embedding per table goes through LayerNorm, one ReLU layer and a softmax over the 211 labels. Weights are int8 with one scale per row.
+The parity tests require identical normalization, identical feature ids and the same label as the Python reference on all 958 vectors, on every target. The current maximum probability difference is 1.3e-6.
 
 ## Publishing
 
