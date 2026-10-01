@@ -15,3 +15,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "beacon-kmp"
 include(":beacon")
+include(":demo")
